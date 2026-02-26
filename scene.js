@@ -1,164 +1,138 @@
-/*
- * Example 13: three.js Basic Setup
- *
- * This example demonstrates the fundamental structure of a three.js scene.
- *
- * Key concepts covered:
- * - Scene: Container for all 3D objects
- * - Camera: Defines the point of view (PerspectiveCamera)
- * - Renderer: Draws the scene to the canvas (WebGLRenderer)
- * - Geometry: The shape of 3D objects (BoxGeometry)
- * - Material: The appearance of objects (MeshNormalMaterial)
- * - Mesh: Combination of geometry and material
- * - Render loop: Continuous rendering for animation
- */
-
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as THREE from "three";
-import {GUI} from "lil-gui";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GUI } from "lil-gui";
 
+/* ---------------- GUI ---------------- */
 const gui = new GUI();
 
-gui.add( {message: 'Hello, lil-gui!'}, 'message');
-
-
-console.log(THREE);
-
-// ============================================
-// 1. SCENE
-// ============================================
-// The scene is a container that holds all 3D objects, lights, etc.
+/* ---------------- SCENE ---------------- */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x202020);
-// ============================================
-// 2. CAMERA
-// ============================================
-// PerspectiveCamera mimics how the human eye sees
-// Parameters:
-//   - fov: Field of view (degrees) - how wide the camera sees
-//   - aspect: Width/height ratio of the canvas
-//   - near: Closest distance the camera can see
-//   - far: Farthest distance the camera can see
-const fov = 70;
-const aspect = window.innerWidth / window.innerHeight;
-const near = 0.1;
-const far = 10;
-const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+scene.background = new THREE.Color(0xf5f5f5);
 
-// Position the camera along the Z-axis (toward/away from scene)
-// By default, camera looks down the negative Z-axis
-camera.position.z = 2;
+/* ---------------- CAMERA ---------------- */
+const camera = new THREE.PerspectiveCamera(
+  70,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  20
+);
+camera.position.set(0, 1.2, 4);
 
-// ============================================
-// 3. RENDERER
-// ============================================
-// The renderer draws the scene to the canvas
+/* ---------------- RENDERER ---------------- */
 const canvas = document.querySelector("#canvasThree");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
 
-// Set the size of the renderer to match the window
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// ============================================
-// 4. GEOMETRY
-// ============================================
-// Geometry defines the shape of 3D objects
-// BoxGeometry creates a box/cube
-// Parameters: width, height, depth
-const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+renderer.physicallyCorrectLights = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
 
-// ============================================
-// 5. MATERIAL
-// ============================================
-// Material defines the appearance of objects
-// MeshNormalMaterial shows colors based on surface normals
-// (useful for debugging - each face has a different color)
-// 5. MATERIAL
-const material = new THREE.MeshStandardMaterial({
-  color: 0x0077ff,
-  roughness: 0.5,
-  metalness: 0.2,
-});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-// ============================================
-// 6. MESH – Würfel
-const cubeGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+/* ---------------- CONTROLS ---------------- */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+/* ---------------- FLOOR ---------------- */
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(10, 10),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.5;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ---------------- OBJECTS ---------------- */
+
+// Cube
 const cubeMaterial = new THREE.MeshStandardMaterial({
   color: 0x0077ff,
-  roughness: 0.5,
-  metalness: 0.2,
+  roughness: 0.25,
+  metalness: 0.3,
 });
-const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-cube.rotation.x = 0.1;
-cube.rotation.y = 0.1;
+
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(0.7, 0.7, 0.7),
+  cubeMaterial
+);
+cube.position.set(-1.2, 0, 0);
 cube.castShadow = true;
-cube.position.x = -1; // leicht nach links verschoben
 scene.add(cube);
 
-// 6. MESH – TorusKnot
-const knotGeometry = new THREE.TorusKnotGeometry(0.3, 0.1, 100, 16);
+// TorusKnot
 const knotMaterial = new THREE.MeshStandardMaterial({
   color: 0x8844ff,
-  roughness: 0.4,
-  metalness: 0.5,
+  roughness: 0.2,
+  metalness: 0.6,
 });
-const knot = new THREE.Mesh(knotGeometry, knotMaterial);
+
+const knot = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.4, 0.12, 150, 32),
+  knotMaterial
+);
+knot.position.set(1.2, 0, 0);
 knot.castShadow = true;
-knot.position.x = 1; // leicht nach rechts verschoben
 scene.add(knot);
 
+/* ---------------- LIGHTS ---------------- */
 
-// 7. LIGHTS
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// KEY LIGHT
+const keyLight = new THREE.DirectionalLight(0xffffff, 3);
+keyLight.position.set(3, 4, 3);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.radius = 4;
+scene.add(keyLight);
+
+// FILL LIGHT
+const fillLight = new THREE.DirectionalLight(0xffffff, 1);
+fillLight.position.set(-3, 2, 2);
+scene.add(fillLight);
+
+// RIM LIGHT (GLOW)
+const rimLight = new THREE.DirectionalLight(0xffffff, 2);
+rimLight.position.set(-2, 3, -3);
+scene.add(rimLight);
+
+// SOFT AMBIENT
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(2, 2, 2);
-scene.add(directionalLight);
+/* ---------------- GUI CONTROLS ---------------- */
 
-// Shadow Setup (erst nach Licht und Mesh)
-renderer.shadowMap.enabled = true;
-cube.castShadow = true;
-directionalLight.castShadow = true;
+const lightFolder = gui.addFolder("Lights");
+lightFolder.add(keyLight, "intensity", 0, 5, 0.01);
+lightFolder.add(fillLight, "intensity", 0, 3, 0.01);
+lightFolder.add(rimLight, "intensity", 0, 5, 0.01);
 
-// ============================================
-// 8. RENDER LOOP
-// ============================================
-// For animation and continuous updates, we need a render loop
-// This is similar to the draw() function in p5.js
+const rendererFolder = gui.addFolder("Renderer");
+rendererFolder.add(renderer, "toneMappingExposure", 0.5, 2, 0.01);
+
+/* ---------------- ANIMATION ---------------- */
+
 function animate() {
-  // Update the cube rotation for animation
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
 
-  // Render the scene from the camera's perspective
-  renderer.render(scene, camera);
+  knot.rotation.y += 0.01;
 
-  // Request the next frame (creates a loop)
+  controls.update();
+  renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
 
-// Start the animation loop
 animate();
 
-// ============================================
-// 9. HANDLE WINDOW RESIZE
-// ============================================
-// Update camera and renderer when window is resized
-function onWindowResize() {
-  // Update camera aspect ratio
+/* ---------------- RESIZE ---------------- */
+
+window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  controls.update();
 
-  // Update renderer size
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-}
-
-window.addEventListener("resize", onWindowResize);
-
+});
